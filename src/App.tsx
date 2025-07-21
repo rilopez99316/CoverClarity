@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { Header } from './components/layout/Header'
 import { Hero } from './components/sections/Hero'
@@ -50,38 +51,65 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>
 }
 
+const PageTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 const AppContent: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const location = useLocation()
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <div>
-                <Header onAuthClick={() => setShowAuthModal(true)} />
-                <Dashboard />
-              </div>
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
+    <>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route 
+            path="/" 
+            element={
+              <PageTransition>
+                <HomePage />
+              </PageTransition>
+            } 
+          />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <PageTransition>
+                  <div>
+                    <Header onAuthClick={() => setShowAuthModal(true)} />
+                    <Dashboard />
+                  </div>
+                </PageTransition>
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </AnimatePresence>
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
       />
-    </Router>
+    </>
   )
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   )
 }
 

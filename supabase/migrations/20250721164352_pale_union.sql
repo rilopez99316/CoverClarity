@@ -18,7 +18,7 @@
 
 -- Create a function to handle user profile creation
 CREATE OR REPLACE FUNCTION create_user_profile(
-  user_id uuid,
+  p_user_id uuid,
   user_email text,
   user_full_name text
 )
@@ -28,7 +28,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   INSERT INTO profiles (id, email, full_name)
-  VALUES (user_id, user_email, user_full_name)
+  VALUES (p_user_id, user_email, user_full_name)
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     full_name = EXCLUDED.full_name,
@@ -37,14 +37,14 @@ END;
 $$;
 
 -- Create default user settings function
-CREATE OR REPLACE FUNCTION create_default_user_settings(user_id uuid)
+CREATE OR REPLACE FUNCTION create_default_user_settings(p_user_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
   INSERT INTO user_settings (user_id)
-  VALUES (user_id)
+  VALUES (p_user_id)
   ON CONFLICT (user_id) DO NOTHING;
 END;
 $$;
