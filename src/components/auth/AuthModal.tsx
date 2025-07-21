@@ -36,42 +36,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const signInForm = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   })
 
   const signUpForm = useForm<SignUpForm>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      fullName: '',
+      confirmPassword: '',
+    },
   })
 
   const handleSignIn = async (data: SignInForm) => {
     setLoading(true)
-    try {
-      const { error } = await signIn(data.email, data.password)
-      
-  defaultValues: {
-    email: '',
-    password: '',
-  },
-      if (error) {
-        console.error('Sign in error:', error)
-        signInForm.setError('root', { 
-  defaultValues: {
-    email: '',
-    password: '',
-    fullName: '',
-    confirmPassword: '',
-  },
-          message: error.message || 'Failed to sign in. Please check your credentials.' 
-        })
-      } else {
-        signInForm.reset()
+    
     // Validate data before sending
     if (!data.email || !data.password) {
       signInForm.setError('root', { 
         message: 'Please fill in all required fields.' 
       })
+      setLoading(false)
       return
     }
-
+    
+    try {
+      const { error } = await signIn(data.email, data.password)
+      
+      if (error) {
+        console.error('Sign in error:', error)
+        signInForm.setError('root', { 
+          message: error.message || 'Failed to sign in. Please check your credentials.' 
+        })
+      } else {
+        signInForm.reset()
         onClose()
       }
     } catch (error) {
@@ -86,6 +88,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     
   const handleSignUp = async (data: SignUpForm) => {
     setLoading(true)
+    
+    // Validate data before sending
+    if (!data.email || !data.password || !data.fullName) {
+      signUpForm.setError('root', { 
+        message: 'Please fill in all required fields.' 
+      })
+      setLoading(false)
+      return
+    }
+    
     try {
       const { error } = await signUp(data.email, data.password, data.fullName)
       
@@ -96,14 +108,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         })
       } else {
         signUpForm.reset()
-    // Validate data before sending
-    if (!data.email || !data.password || !data.fullName) {
-      signUpForm.setError('root', { 
-        message: 'Please fill in all required fields.' 
-      })
-      return
-    }
-
         onClose()
       }
     } catch (error) {
@@ -252,5 +256,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       )}
     </AnimatePresence>
   )
- setLoading(false)
 }
