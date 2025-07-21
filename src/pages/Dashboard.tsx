@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useRecommendations } from '../utils/recommendations'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 
@@ -27,6 +28,7 @@ interface Policy {
 
 export const Dashboard: React.FC = () => {
   const { user, session } = useAuth()
+  const { addRecommendation, fetchRecommendations } = useRecommendations()
   const [policies, setPolicies] = useState<Policy[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -59,6 +61,34 @@ export const Dashboard: React.FC = () => {
       console.error('Error fetching policies:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Example function to create sample recommendations
+  const createSampleRecommendations = async () => {
+    if (!user) return
+
+    const sampleRecommendations = [
+      {
+        type: 'coverage_gap',
+        priority: 'high',
+        title: 'Increase Liability Coverage',
+        description: 'Consider increasing your renters insurance liability to $300K',
+        action_type: 'increase_coverage',
+        estimated_impact: 'Better protection against liability claims'
+      },
+      {
+        type: 'renewal',
+        priority: 'medium',
+        title: 'Policy Renewal Due',
+        description: 'Your phone warranty expires in 15 days',
+        action_type: 'renew_policy',
+        estimated_impact: 'Continued device protection'
+      }
+    ]
+
+    for (const recommendation of sampleRecommendations) {
+      await addRecommendation(recommendation)
     }
   }
 
