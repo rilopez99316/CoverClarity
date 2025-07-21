@@ -40,6 +40,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       email: '',
       password: '',
     },
+    mode: 'onChange',
   })
 
   const signUpForm = useForm<SignUpForm>({
@@ -50,22 +51,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       fullName: '',
       confirmPassword: '',
     },
+    mode: 'onChange',
   })
 
   const handleSignIn = async (data: SignInForm) => {
     setLoading(true)
     
-    // Validate data before sending
-    if (!data.email || !data.password) {
-      signInForm.setError('root', { 
-        message: 'Please fill in all required fields.' 
-      })
-      setLoading(false)
-      return
-    }
+    console.log('Sign in data:', data) // Debug log
     
     try {
-      const { error } = await signIn(data.email, data.password)
+      const { error } = await signIn(data.email?.trim() || '', data.password || '')
       
       if (error) {
         console.error('Sign in error:', error)
@@ -89,17 +84,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const handleSignUp = async (data: SignUpForm) => {
     setLoading(true)
     
-    // Validate data before sending
-    if (!data.email || !data.password || !data.fullName) {
-      signUpForm.setError('root', { 
-        message: 'Please fill in all required fields.' 
-      })
-      setLoading(false)
-      return
-    }
+    console.log('Sign up data:', data) // Debug log
     
     try {
-      const { error } = await signUp(data.email, data.password, data.fullName)
+      const { error } = await signUp(data.email?.trim() || '', data.password || '', data.fullName?.trim() || '')
       
       if (error) {
         console.error('Sign up error:', error)
@@ -122,6 +110,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     
   const toggleMode = () => {
     setIsSignUp(!isSignUp)
+    setLoading(false)
     signInForm.reset()
     signUpForm.reset()
   }
