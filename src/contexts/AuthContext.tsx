@@ -69,25 +69,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email)
       
-      if (session?.user) {
-        // Verify user with current JWT token
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) {
-          console.error('User verification failed:', error)
-          await supabase.auth.signOut()
+      try {
+        if (session?.user) {
+          // Verify user with current JWT token
+          const { data: { user }, error } = await supabase.auth.getUser()
+          if (error) {
+            console.error('User verification failed:', error)
+            await supabase.auth.signOut()
+            setSession(null)
+            setUser(null)
+          } else {
+            setSession(session)
+            setUser(user)
+          }
+        } else {
           setSession(null)
           setUser(null)
-        } else {
-          setSession(session)
-          setUser(user)
         }
-      } else {
+      } catch (error) {
+        console.error('Auth state change error:', error)
         setSession(null)
         setUser(null)
+      } finally {
+        setLoading(false)
       }
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
