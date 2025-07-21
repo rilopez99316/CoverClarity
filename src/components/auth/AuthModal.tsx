@@ -44,28 +44,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleSignIn = async (data: SignInForm) => {
     setLoading(true)
-    const { error } = await signIn(data.email, data.password)
-    
-    if (error) {
-      signInForm.setError('root', { message: error.message })
-    } else {
-      onClose()
+    try {
+      const { error } = await signIn(data.email, data.password)
+      
+      if (error) {
+        console.error('Sign in error:', error)
+        signInForm.setError('root', { 
+          message: error.message || 'Failed to sign in. Please check your credentials.' 
+        })
+      } else {
+        signInForm.reset()
+        onClose()
+      }
+    } catch (error) {
+      console.error('Unexpected sign in error:', error)
+      signInForm.setError('root', { 
+        message: 'An unexpected error occurred. Please try again.' 
+      })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
-
+    
   const handleSignUp = async (data: SignUpForm) => {
     setLoading(true)
-    const { error } = await signUp(data.email, data.password, data.fullName)
-    
-    if (error) {
-      signUpForm.setError('root', { message: error.message })
-    } else {
-      onClose()
+    try {
+      const { error } = await signUp(data.email, data.password, data.fullName)
+      
+      if (error) {
+        console.error('Sign up error:', error)
+        signUpForm.setError('root', { 
+          message: error.message || 'Failed to create account. Please try again.' 
+        })
+      } else {
+        signUpForm.reset()
+        onClose()
+      }
+    } catch (error) {
+      console.error('Unexpected sign up error:', error)
+      signUpForm.setError('root', { 
+        message: 'An unexpected error occurred. Please try again.' 
+      })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
-
+    
   const toggleMode = () => {
     setIsSignUp(!isSignUp)
     signInForm.reset()

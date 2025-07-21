@@ -26,25 +26,34 @@ interface Policy {
 }
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const [policies, setPolicies] = useState<Policy[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) {
+    if (user && session) {
       fetchPolicies()
     }
-  }, [user])
+  }, [user, session])
 
   const fetchPolicies = async () => {
+    if (!user || !session) {
+      setLoading(false)
+      return
+    }
+
     try {
+      // Ensure we're using the authenticated session
       const { data, error } = await supabase
         .from('policies')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching policies:', error)
+        throw error
+      }
       setPolicies(data || [])
     } catch (error) {
       console.error('Error fetching policies:', error)

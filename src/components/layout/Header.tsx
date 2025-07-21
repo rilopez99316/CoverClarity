@@ -9,7 +9,15 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
+  }
 
   return (
     <motion.header
@@ -37,7 +45,9 @@ export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
           </nav>
 
           <div className="flex items-center space-x-4">
-            {user ? (
+            {loading ? (
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+            ) : user ? (
               <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
                   <User size={20} className="text-gray-600" />
@@ -48,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={signOut}
+                  onClick={handleSignOut}
                   className="flex items-center space-x-1"
                 >
                   <LogOut size={16} />
