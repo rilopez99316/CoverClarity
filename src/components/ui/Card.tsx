@@ -20,7 +20,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <Component
-      className={`bg-white rounded-xl shadow-lg border border-gray-100 ${className}`}
+      className={`bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 ${className}`}
       {...motionProps}
     >
       {children}

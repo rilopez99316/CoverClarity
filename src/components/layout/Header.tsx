@@ -23,23 +23,25 @@ export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-100"
+      className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-xl border-b border-white/50 shadow-lg"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
-            <Shield className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">CoverClarity</span>
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg p-1.5">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">CoverClarity</span>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
               Features
             </a>
-            <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
               How It Works
             </a>
-            <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">
               Pricing
             </a>
           </nav>
