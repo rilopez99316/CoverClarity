@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useRecommendations } from '../utils/recommendations'
+import { AddPolicyModal } from '../components/modals/AddPolicyModal'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 
@@ -30,6 +31,7 @@ export const Dashboard: React.FC = () => {
   const { user, session } = useAuth()
   const { addRecommendation, fetchRecommendations } = useRecommendations()
   const [policies, setPolicies] = useState<Policy[]>([])
+  const [showAddPolicyModal, setShowAddPolicyModal] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -223,7 +225,11 @@ export const Dashboard: React.FC = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">Your Policies</h2>
-                <Button size="sm" className="flex items-center space-x-2">
+                <Button 
+                  size="sm" 
+                  className="flex items-center space-x-2"
+                  onClick={() => setShowAddPolicyModal(true)}
+                >
                   <Plus size={16} />
                   <span>Add Policy</span>
                 </Button>
@@ -238,7 +244,9 @@ export const Dashboard: React.FC = () => {
                   <p className="text-gray-600 mb-6">
                     Start by adding your first insurance policy or warranty
                   </p>
-                  <Button>Add Your First Policy</Button>
+                  <Button onClick={() => setShowAddPolicyModal(true)}>
+                    Add Your First Policy
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -340,7 +348,12 @@ export const Dashboard: React.FC = () => {
                 Quick Actions
               </h2>
               <div className="space-y-3">
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => setShowAddPolicyModal(true)}
+                >
                   <Plus size={16} className="mr-2" />
                   Add New Policy
                 </Button>
@@ -356,6 +369,12 @@ export const Dashboard: React.FC = () => {
             </Card>
           </motion.div>
         </div>
+
+        <AddPolicyModal
+          isOpen={showAddPolicyModal}
+          onClose={() => setShowAddPolicyModal(false)}
+          onSuccess={fetchPolicies}
+        />
       </div>
     </div>
   )
