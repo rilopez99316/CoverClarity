@@ -36,25 +36,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const signInForm = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
   })
 
   const signUpForm = useForm<SignUpForm>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      fullName: '',
+      confirmPassword: '',
+    },
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
   })
 
   const handleSignIn = async (data: SignInForm) => {
-    setLoading(true)
+    setLoading(true);
+    
+    // Debug: Log the form data and form state
+    console.log('Sign in data:', data);
+    console.log('Form values:', signInForm.getValues());
+    console.log('Form errors:', signInForm.formState.errors);
+    
+    // Validate that email and password exist before proceeding
+    if (!data.email || !data.password) {
+      console.log('Missing required fields - email:', data.email, 'password:', data.password);
+      signInForm.setError('root', {
+        message: 'Please provide both email and password'
+      });
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const { error } = await signIn(data.email, data.password)
+      const { error } = await signIn(data.email.trim(), data.password);
       
       if (error) {
-        console.error('Sign in error:', error)
+        console.error('Sign in error:', error);
         signInForm.setError('root', { 
           message: error.message || 'Failed to sign in. Please check your credentials.' 
-        })
+        });
       } else {
-        signInForm.reset()
-        onClose()
+        signInForm.reset();
+        onClose();
       }
     } catch (error) {
       console.error('Unexpected sign in error:', error)
@@ -67,18 +99,43 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   }
     
   const handleSignUp = async (data: SignUpForm) => {
-    setLoading(true)
+    setLoading(true);
+    
+    // Debug: Log the form data and form state
+    console.log('Sign up data:', data);
+    console.log('Form values:', signUpForm.getValues());
+    console.log('Form errors:', signUpForm.formState.errors);
+    
+    // Validate all required fields before proceeding
+    if (!data.email || !data.password || !data.fullName || !data.confirmPassword) {
+      console.log('Missing required fields - email:', data.email, 'password:', data.password, 'fullName:', data.fullName, 'confirmPassword:', data.confirmPassword);
+      signUpForm.setError('root', {
+        message: 'Please fill in all required fields'
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Ensure passwords match (though this is also handled by the schema)
+    if (data.password !== data.confirmPassword) {
+      signUpForm.setError('confirmPassword', {
+        message: 'Passwords do not match'
+      });
+      setLoading(false);
+      return;
+    }
+    
     try {
-      const { error } = await signUp(data.email, data.password, data.fullName)
+      const { error } = await signUp(data.email.trim(), data.password, data.fullName.trim());
       
       if (error) {
-        console.error('Sign up error:', error)
+        console.error('Sign up error:', error);
         signUpForm.setError('root', { 
           message: error.message || 'Failed to create account. Please try again.' 
-        })
+        });
       } else {
-        signUpForm.reset()
-        onClose()
+        signUpForm.reset();
+        onClose();
       }
     } catch (error) {
       console.error('Unexpected sign up error:', error)
@@ -92,6 +149,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     
   const toggleMode = () => {
     setIsSignUp(!isSignUp)
+    setLoading(false)
     signInForm.reset()
     signUpForm.reset()
   }
@@ -138,29 +196,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <Input
                   label="Full Name"
                   icon={<User size={20} />}
-                  {...signUpForm.register('fullName')}
+                  {...signUpForm.register('fullName', { required: 'Full name is required' })}
                   error={signUpForm.formState.errors.fullName?.message}
+                  value={signUpForm.watch('fullName') || ''}
+                  onChange={(e) => signUpForm.setValue('fullName', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signUpForm.trigger('fullName')}
                 />
                 <Input
                   label="Email"
                   type="email"
                   icon={<Mail size={20} />}
-                  {...signUpForm.register('email')}
+                  {...signUpForm.register('email', { required: 'Email is required' })}
                   error={signUpForm.formState.errors.email?.message}
+                  value={signUpForm.watch('email') || ''}
+                  onChange={(e) => signUpForm.setValue('email', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signUpForm.trigger('email')}
                 />
                 <Input
                   label="Password"
                   type="password"
                   icon={<Lock size={20} />}
-                  {...signUpForm.register('password')}
+                  {...signUpForm.register('password', { required: 'Password is required' })}
                   error={signUpForm.formState.errors.password?.message}
+                  value={signUpForm.watch('password') || ''}
+                  onChange={(e) => signUpForm.setValue('password', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signUpForm.trigger('password')}
                 />
                 <Input
                   label="Confirm Password"
                   type="password"
                   icon={<Lock size={20} />}
-                  {...signUpForm.register('confirmPassword')}
+                  {...signUpForm.register('confirmPassword', { required: 'Please confirm your password' })}
                   error={signUpForm.formState.errors.confirmPassword?.message}
+                  value={signUpForm.watch('confirmPassword') || ''}
+                  onChange={(e) => signUpForm.setValue('confirmPassword', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signUpForm.trigger('confirmPassword')}
                 />
                 
                 {signUpForm.formState.errors.root && (
@@ -183,15 +253,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   label="Email"
                   type="email"
                   icon={<Mail size={20} />}
-                  {...signInForm.register('email')}
+                  {...signInForm.register('email', { required: 'Email is required' })}
                   error={signInForm.formState.errors.email?.message}
+                  value={signInForm.watch('email') || ''}
+                  onChange={(e) => signInForm.setValue('email', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signInForm.trigger('email')}
                 />
                 <Input
                   label="Password"
                   type="password"
                   icon={<Lock size={20} />}
-                  {...signInForm.register('password')}
+                  {...signInForm.register('password', { required: 'Password is required' })}
                   error={signInForm.formState.errors.password?.message}
+                  value={signInForm.watch('password') || ''}
+                  onChange={(e) => signInForm.setValue('password', e.target.value, { shouldValidate: true })}
+                  onBlur={() => signInForm.trigger('password')}
                 />
                 
                 {signInForm.formState.errors.root && (
