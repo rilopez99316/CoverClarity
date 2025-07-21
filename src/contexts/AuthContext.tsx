@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { useNavigate } from 'react-router-dom'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  signOutLoading: boolean
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
@@ -26,6 +28,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [signOutLoading, setSignOutLoading] = useState(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
     // Get initial session and user
@@ -127,11 +131,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (!error && data.user) {
-        // Create profile with authenticated context
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          email: data.user.email!,
-          full_name: fullName,
+        // Use the create_user_profile function to handle profile creation and settings
+        const { error: profileError } = await supabase.rpc('create_user_profile', {
+          p_user_id: data.user.id,
+          user_email: data.user.email!,
+          user_full_name: fullName
         })
         
         if (profileError) {
@@ -180,11 +184,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
+      setSignOutLoading(true)
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      // Clear local state
       setUser(null)
       setSession(null)
+      
+      // Smoothly navigate to home
+      navigate('/', { replace: true })
     } catch (error) {
       console.error('Sign out error:', error)
+      // Even if there's an error, still try to clear local state
+      setUser(null)
+      setSession(null)
+      navigate('/', { replace: true })
+    } finally {
+      setSignOutLoading(false)
     }
   }
 
@@ -192,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     loading,
+    signOutLoading,
     signUp,
     signIn,
     signOut,

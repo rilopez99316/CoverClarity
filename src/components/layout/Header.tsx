@@ -1,6 +1,6 @@
-import React from 'react'
-import { motion } from 'framer-motion'
-import { Shield, Menu, User, LogOut } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Shield, Menu, User, LogOut, Loader2 } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { Button } from '../ui/Button'
 
@@ -9,13 +9,25 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading, signOutLoading } = useAuth()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      // Clean up any pending timeouts when component unmounts
+      if (isSigningOut) {
+        setIsSigningOut(false)
+      }
+    }
+  }, [isSigningOut])
 
   const handleSignOut = async () => {
     try {
+      setIsSigningOut(true)
       await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
+      setIsSigningOut(false)
     }
   }
 
@@ -50,23 +62,45 @@ export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
             {loading ? (
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
             ) : user ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
-                  <User size={20} className="text-gray-600" />
-                  <span className="text-sm text-gray-700">
-                    {user.user_metadata?.full_name || user.email}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-1"
-                >
-                  <LogOut size={16} />
-                  <span>Sign Out</span>
-                </Button>
-              </div>
+              <AnimatePresence mode="wait">
+                {isSigningOut || signOutLoading ? (
+                  <motion.div
+                    key="signing-out"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Signing out...</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="user-info"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center space-x-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <User size={20} className="text-gray-600" />
+                      <span className="text-sm text-gray-700">
+                        {user.user_metadata?.full_name || user.email}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSignOut}
+                      className="flex items-center space-x-1 transition-all duration-200 hover:bg-gray-100"
+                      disabled={isSigningOut || signOutLoading}
+                    >
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             ) : (
               <>
                 <Button variant="ghost" onClick={onAuthClick}>
