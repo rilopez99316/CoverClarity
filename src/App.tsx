@@ -8,6 +8,7 @@ import { HowItWorks } from './components/sections/HowItWorks'
 import { Footer } from './components/sections/Footer'
 import { AuthModal } from './components/auth/AuthModal'
 import { Dashboard } from './pages/Dashboard'
+import TestEnv from './test-env';
 
 const HomePage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -24,6 +25,7 @@ const HomePage: React.FC = () => {
       <Features />
       <HowItWorks />
       <Footer />
+      <TestEnv />
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
