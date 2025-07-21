@@ -56,6 +56,7 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
 
   const form = useForm<PolicyForm>({
     resolver: zodResolver(policySchema),
+    mode: 'onChange',
     defaultValues: {
       title: '',
       type: '',
@@ -68,7 +69,17 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
       end_date: '',
       notes: '',
     }
-  })
+  });
+  
+  // Debug form state changes
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      console.log('Form field changed:', { name, type, value });
+      console.log('Form errors:', form.formState.errors);
+      console.log('Is form valid?', form.formState.isValid);
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   const uploadFile = async (file: File, policyId: string): Promise<string | null> => {
     try {
@@ -103,7 +114,10 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
     }
   }
 
-  const handleSubmit = async (data: PolicyForm) => {
+  const onSubmit = async (data: PolicyForm) => {
+    console.log('Form submission started with data:', data);
+    console.log('User:', user);
+    console.log('Uploaded files:', uploadedFiles);
     if (!user) return
 
     setLoading(true)
@@ -168,6 +182,14 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
     setUploadedFiles(prev => [...prev, ...files])
   }
 
+  // Debug form state
+  console.log('Form state:', {
+    isSubmitting: form.formState.isSubmitting,
+    isValid: form.formState.isValid,
+    errors: form.formState.errors,
+    isDirty: form.formState.isDirty
+  });
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -203,12 +225,29 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
               </div>
             </div>
 
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="p-6 space-y-6">
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                console.log('Form submit triggered');
+                const isValid = await form.trigger();
+                console.log('Form validation result:', isValid);
+                console.log('Form errors:', form.formState.errors);
+                
+                if (isValid) {
+                  console.log('Form is valid, submitting...');
+                  form.handleSubmit(onSubmit)();
+                } else {
+                  console.log('Form is invalid');
+                }
+              }} 
+              className="p-6 space-y-6" 
+              noValidate
+            >
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
                   label="Policy Title"
                   placeholder="e.g., State Farm Auto Insurance"
-                  {...form.register('title')}
+                  {...form.register('title', { required: 'Policy title is required' })}
                   error={form.formState.errors.title?.message}
                 />
                 
@@ -235,7 +274,7 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
                 <Input
                   label="Provider"
                   placeholder="e.g., State Farm, Geico, Apple"
-                  {...form.register('provider')}
+                  {...form.register('provider', { required: 'Provider is required' })}
                   error={form.formState.errors.provider?.message}
                 />
                 
@@ -355,6 +394,7 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({
                   type="submit"
                   loading={loading}
                   className="flex items-center space-x-2"
+                  disabled={!form.formState.isValid || loading}
                 >
                   <Shield size={16} />
                   <span>Add Policy</span>
