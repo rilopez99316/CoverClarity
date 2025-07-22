@@ -35,9 +35,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Get initial session and user
     const initializeAuth = async () => {
       try {
+        setLoading(true)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         if (sessionError) {
           console.error('Session error:', sessionError)
+          setSession(null)
+          setUser(null)
+          setLoading(false)
+          return
         }
         
         if (session) {
@@ -73,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email)
       
+      setLoading(true)
       try {
         if (session?.user) {
           // Verify user with current JWT token
