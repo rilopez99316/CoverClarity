@@ -5,6 +5,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
+// Type definition for import.meta.env
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_SUPABASE_URL?: string;
+      VITE_SUPABASE_ANON_KEY?: string;
+    };
+  }
+}
+
 export const policySchema = z.object({
   title: z.string().min(1, 'Policy title is required'),
   type: z.string().min(1, 'Policy type is required'),
@@ -77,6 +87,17 @@ export const usePolicyForm = (onSuccess: () => void) => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${policyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Debug logging
+      console.log('Uploading file to Supabase Storage:', {
+        bucket: 'policy-documents',
+        path: fileName,
+        fileSize: file.size,
+        fileType: file.type,
+        policyId,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        anonKeyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 10) + '...',
+      });
 
       const { data, error } = await supabase.storage
         .from('policy-documents')
