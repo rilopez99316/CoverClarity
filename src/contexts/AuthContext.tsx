@@ -32,77 +32,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Get initial session and user
-    const initializeAuth = async () => {
-      try {
-        setLoading(true)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) {
-          console.error('Session error:', sessionError)
-          setSession(null)
-          setUser(null)
-          setLoading(false)
-          return
-        }
-        
-        if (session) {
-          // Verify user with JWT token
-          const { data: { user }, error: userError } = await supabase.auth.getUser()
-          if (userError) {
-            console.error('User verification error:', userError)
-            await supabase.auth.signOut()
-            setSession(null)
-            setUser(null)
-          } else {
-            setSession(session)
-            setUser(user)
-          }
-        } else {
-          setSession(null)
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error)
-        setSession(null)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    initializeAuth()
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    }).catch((error) => {
+      console.error('Auth initialization error:', error)
+      setSession(null)
+      setUser(null)
+      setLoading(false)
+    })
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state change:', event, session?.user?.email)
-      
-      setLoading(true)
-      try {
-        if (session?.user) {
-          // Verify user with current JWT token
-          const { data: { user }, error } = await supabase.auth.getUser()
-          if (error) {
-            console.error('User verification failed:', error)
-            await supabase.auth.signOut()
-            setSession(null)
-            setUser(null)
-          } else {
-            setSession(session)
-            setUser(user)
-          }
-        } else {
-          setSession(null)
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Auth state change error:', error)
-        setSession(null)
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
+      setSession(session)
+      setUser(session?.user ?? null)
     })
 
     return () => subscription.unsubscribe()

@@ -60,9 +60,9 @@ export const Header: React.FC<HeaderProps> = ({ onAuthClick }) => {
 
           <div className="flex items-center space-x-4">
             {loading ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 text-gray-600">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                <span className="text-sm text-gray-600">Loading...</span>
+                <span className="text-sm">Checking auth...</span>
               </div>
             ) : user ? (
               <AnimatePresence mode="wait">
