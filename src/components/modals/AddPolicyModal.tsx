@@ -6,19 +6,6 @@ import { FileUpload } from '../ui/FileUpload';
 import { PolicyFormFields } from '../policy/PolicyFormFields';
 import { usePolicyForm } from '../../hooks/usePolicyForm';
 
-const policyTypes = [
-  'Auto Insurance',
-  'Home Insurance',
-  'Renters Insurance',
-  'Health Insurance',
-  'Life Insurance',
-  'Phone Warranty',
-  'Electronics Warranty',
-  'Appliance Warranty',
-  'Extended Warranty',
-  'Other'
-];
-
 interface AddPolicyModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -80,47 +67,41 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({ isOpen, onClose,
               </button>
 
               <div className="p-6">
-                <div className="mb-6">
-                  <h2 className="text-lg font-medium leading-6 text-gray-900">
-                    Add New Policy
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Fill in the details below to add a new insurance policy or warranty.
-                  </p>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Policy Documents
-                      </label>
-                      <FileUpload
-                        accept="application/pdf,image/jpeg,image/png"
-                        maxSize={10}
-                        onFileSelect={handleFileSelect}
-                        multiple
-                      />
-                      <p className="text-xs text-gray-500">
-                        Upload PDF, JPG, or PNG files (max 10MB)
-                      </p>
-                      {fileErrors.length > 0 && (
-                        <div className="mt-2 text-sm text-red-600">
-                          {fileErrors.map((error, index) => (
-                            <p key={index}>{error}</p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {uploadedFiles.length > 0 && (
-                      <div className="mt-2 text-sm text-gray-500">
-                        {uploadedFiles.length} file{uploadedFiles.length !== 1 ? 's' : ''} selected
-                      </div>
-                    )}
+                  <div className="mb-6">
+                    <h2 className="text-lg font-medium leading-6 text-gray-900">
+                      Add New Policy
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Fill in the details below to add a new insurance policy or warranty.
+                    </p>
                   </div>
 
                   <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                    <PolicyFormFields form={form} policyTypes={policyTypes} />
+                    <PolicyFormFields form={form} />
+                    
+                    <div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Policy Document
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <FileUpload
+                          accept="application/pdf,image/jpeg,image/png"
+                          maxSize={10}
+                          onFileSelect={handleFileSelect}
+                          error={fileErrors[0]} // Show first error if any
+                          required
+                        />
+                        {fileErrors.length > 0 && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {fileErrors[0]}
+                          </p>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">
+                          Upload a PDF or image of your policy document (max 10MB)
+                        </p>
+                      </div>
+                    </div>
 
                     {error && (
                       <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
@@ -152,7 +133,6 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({ isOpen, onClose,
                       </Button>
                     </div>
                   </form>
-                </div>
               </div>
             </motion.div>
           </div>

@@ -16,16 +16,7 @@ declare global {
 }
 
 export const policySchema = z.object({
-  title: z.string().min(1, 'Policy title is required'),
-  type: z.string().min(1, 'Policy type is required'),
-  provider: z.string().min(1, 'Provider is required'),
-  policy_number: z.string().optional(),
-  coverage_amount: z.string().optional(),
-  deductible: z.string().optional(),
-  premium: z.string().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  notes: z.string().optional(),
+  title: z.string().min(1, 'Policy name is required'),
 });
 
 export type PolicyFormData = z.infer<typeof policySchema>;
@@ -39,16 +30,7 @@ export const usePolicyForm = (onSuccess: () => void) => {
     resolver: zodResolver(policySchema),
     mode: 'onChange',
     defaultValues: {
-      title: '',
-      type: '',
-      provider: '',
-      policy_number: '',
-      coverage_amount: '',
-      deductible: '',
-      premium: '',
-      start_date: '',
-      end_date: '',
-      notes: '',
+      title: ''
     },
   });
 
@@ -128,6 +110,11 @@ export const usePolicyForm = (onSuccess: () => void) => {
       return;
     }
 
+    if (!formData.files || formData.files.length === 0) {
+      setError('Please upload a policy document');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -135,49 +122,51 @@ export const usePolicyForm = (onSuccess: () => void) => {
       // Ensure user profile exists
       await ensureUserProfile(user.id, user.email || '');
 
-      // Create policy record
-      const policyData = {
-        user_id: user.id,
-        title: formData.title.trim(),
-        type: formData.type,
-        provider: formData.provider.trim(),
-        policy_number: formData.policy_number?.trim() || null,
-        coverage_amount: formData.coverage_amount ? parseFloat(formData.coverage_amount) : null,
-        deductible: formData.deductible ? parseFloat(formData.deductible) : null,
-        premium: formData.premium ? parseFloat(formData.premium) : null,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
-        notes: formData.notes?.trim() || null,
-        status: 'active',
-      };
+      // First, upload the file to storage
+      const file = formData.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `temp/${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Upload the file to storage
+      const { error: uploadError } = await supabase.storage
+        .from('policy-documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
-      // Create the policy first
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to upload file. Please try again.');
+      }
+
+      // Get the public URL of the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('policy-documents')
+        .getPublicUrl(fileName);
+
+      // Create policy record with the document URL
       const { data: policy, error: policyError } = await supabase
         .from('policies')
-        .insert(policyData)
+        .insert({
+          user_id: user.id,
+          title: formData.title.trim(),
+          status: 'active',
+          document_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          file_type: file.type,
+        })
         .select()
         .single();
 
       if (policyError) {
+        // Clean up the uploaded file if policy creation fails
+        await supabase.storage
+          .from('policy-documents')
+          .remove([fileName]);
+          
         throw policyError;
-      }
-
-      // Handle file uploads if any
-      if (formData.files && formData.files.length > 0) {
-        const uploadPromises = formData.files.map(file => 
-          uploadFile(file, policy.id)
-        );
-        
-        const uploadResults = await Promise.all(uploadPromises);
-        const documentUrls = uploadResults.filter((url): url is string => url !== null);
-        
-        // Update policy with document URLs if needed
-        if (documentUrls.length > 0) {
-          await supabase
-            .from('policies')
-            .update({ document_urls: documentUrls })
-            .eq('id', policy.id);
-        }
       }
 
       onSuccess();
