@@ -28,16 +28,20 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({ isOpen, onClose,
     setFileErrors([]);
   };
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (formData: any) => {
+    if (uploadedFiles.length === 0) {
+      setFileErrors(['Please upload a policy document']);
+      return;
+    }
+
     try {
-      // Here you would typically handle file uploads before form submission
-      // For now, we'll just pass the files along with the form data
-      await onSubmit({ ...data, files: uploadedFiles });
-      setUploadedFiles([]);
-      setFileErrors([]);
+      // Combine form data with uploaded files
+      await onSubmit({ ...formData, files: uploadedFiles });
+      // onSuccess will be called by usePolicyForm on successful submission
       onClose();
     } catch (error) {
       console.error('Error submitting form:', error);
+      // Error is already handled by usePolicyForm
     }
   };
 
@@ -77,7 +81,23 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({ isOpen, onClose,
                   </div>
 
                   <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-                    <PolicyFormFields form={form} />
+                    <div className="space-y-4">
+                      <PolicyFormFields form={form} />
+                      {error && (
+                        <div className="rounded-md bg-red-50 p-4">
+                          <div className="flex">
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-red-800">
+                                Error saving policy
+                              </h3>
+                              <div className="mt-2 text-sm text-red-700">
+                                <p>{error}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     
                     <div>
                       <div className="space-y-2">
@@ -126,8 +146,9 @@ export const AddPolicyModal: React.FC<AddPolicyModalProps> = ({ isOpen, onClose,
                       </Button>
                       <Button
                         type="submit"
-                        disabled={isSubmitting || !form.formState.isValid}
+                        disabled={isSubmitting}
                         loading={isSubmitting}
+                        className="justify-center"
                       >
                         {isSubmitting ? 'Saving...' : 'Save Policy'}
                       </Button>

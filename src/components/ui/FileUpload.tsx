@@ -13,7 +13,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   onFileSelect,
-  accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx',
+  accept = 'application/pdf,image/jpeg,image/png,.doc,.docx',
   multiple = true,
   maxSize = 10,
   className = ''
@@ -119,7 +119,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             </p>
           </div>
           
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            type="button"
+            onClick={() => {
+              const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+              fileInput?.click();
+            }}
+          >
             Choose Files
           </Button>
         </div>

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 
 // Type definition for import.meta.env
 declare global {
@@ -17,6 +18,16 @@ declare global {
 
 export const policySchema = z.object({
   title: z.string().min(1, 'Policy name is required'),
+  type: z.string().default('auto'),
+  category: z.string().default('insurance'),
+  provider: z.string().default(''),
+  policyNumber: z.string().optional(),
+  coverageAmount: z.string().optional(),
+  deductible: z.string().optional(),
+  premium: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export type PolicyFormData = z.infer<typeof policySchema>;
@@ -27,10 +38,20 @@ export const usePolicyForm = (onSuccess: () => void) => {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<PolicyFormData>({
-    resolver: zodResolver(policySchema),
+    resolver: zodResolver(policySchema) as any,
     mode: 'onChange',
     defaultValues: {
-      title: ''
+      title: '',
+      type: 'auto',
+      category: 'insurance',
+      provider: '',
+      policyNumber: '',
+      coverageAmount: '',
+      deductible: '',
+      premium: '',
+      startDate: '',
+      endDate: '',
+      notes: ''
     },
   });
 
@@ -65,43 +86,35 @@ export const usePolicyForm = (onSuccess: () => void) => {
     }
   }, []);
 
-  const uploadFile = useCallback(async (file: File, policyId: string): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${policyId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      // Debug logging
-      console.log('Uploading file to Supabase Storage:', {
-        bucket: 'policy-documents',
-        path: fileName,
-        fileSize: file.size,
-        fileType: file.type,
-        policyId,
-        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
-        anonKeyPrefix: import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 10) + '...',
+  const uploadPolicyDocument = useCallback(async (file: File, userId: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${uuidv4()}.${fileExt}`;
+    
+    // Upload the file to storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('policy-documents')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
       });
 
-      const { data, error } = await supabase.storage
-        .from('policy-documents')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        return null;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('policy-documents')
-        .getPublicUrl(data.path);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      return null;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload file. Please try again.');
     }
+
+    // Get the public URL of the uploaded file
+    const { data: { publicUrl } } = supabase.storage
+      .from('policy-documents')
+      .getPublicUrl(uploadData.path);
+
+    return {
+      fileName: file.name,
+      fileUrl: publicUrl,
+      fileSize: file.size,
+      fileType: file.type,
+      storagePath: uploadData.path
+    };
   }, []);
 
   const onSubmit = useCallback(async (formData: PolicyFormData & { files?: File[] }) => {
@@ -122,28 +135,24 @@ export const usePolicyForm = (onSuccess: () => void) => {
       // Ensure user profile exists
       await ensureUserProfile(user.id, user.email || '');
 
-      // First, upload the file to storage
+      // Upload the policy document
       const file = formData.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `temp/${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
-      // Upload the file to storage
-      const { error: uploadError } = await supabase.storage
-        .from('policy-documents')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      let documentUrl = '';
+      let documentInfo: {
+        fileName: string;
+        fileUrl: string;
+        fileSize: number;
+        fileType: string;
+        storagePath: string;
+      } | null = null;
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error('Failed to upload file. Please try again.');
+      try {
+        documentInfo = await uploadPolicyDocument(file, user.id);
+        documentUrl = documentInfo.fileUrl;
+      } catch (uploadError) {
+        console.error('Error uploading document:', uploadError);
+        throw new Error('Failed to upload policy document. Please try again.');
       }
-
-      // Get the public URL of the uploaded file
-      const { data: { publicUrl } } = supabase.storage
-        .from('policy-documents')
-        .getPublicUrl(fileName);
 
       // Create policy record with the document URL
       const { data: policy, error: policyError } = await supabase
@@ -151,21 +160,32 @@ export const usePolicyForm = (onSuccess: () => void) => {
         .insert({
           user_id: user.id,
           title: formData.title.trim(),
+          type: formData.type,
+          category: formData.category,
+          provider: formData.provider,
+          policy_number: formData.policyNumber,
+          coverage_amount: formData.coverageAmount ? parseFloat(formData.coverageAmount) : null,
+          deductible: formData.deductible ? parseFloat(formData.deductible) : null,
+          premium: formData.premium ? parseFloat(formData.premium) : null,
+          start_date: formData.startDate || null,
+          end_date: formData.endDate || null,
           status: 'active',
-          document_url: publicUrl,
-          file_name: file.name,
-          file_size: file.size,
-          file_type: file.type,
+          document_url: documentUrl,
+          file_name: documentInfo.fileName,
+          file_size: documentInfo.fileSize,
+          file_type: documentInfo.fileType,
+          notes: formData.notes
         })
         .select()
         .single();
 
       if (policyError) {
         // Clean up the uploaded file if policy creation fails
-        await supabase.storage
-          .from('policy-documents')
-          .remove([fileName]);
-          
+        if (documentInfo?.storagePath) {
+          await supabase.storage
+            .from('policy-documents')
+            .remove([documentInfo.storagePath]);
+        }
         throw policyError;
       }
 
@@ -173,17 +193,17 @@ export const usePolicyForm = (onSuccess: () => void) => {
       form.reset();
     } catch (error) {
       console.error('Error creating policy:', error);
-      setError('Failed to create policy. Please try again.');
-      throw error; // Re-throw to allow handling in the component
+      setError(error instanceof Error ? error.message : 'Failed to create policy. Please try again.');
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, form, onSuccess, ensureUserProfile, uploadFile]);
+  }, [user, form, onSuccess, ensureUserProfile, uploadPolicyDocument]);
 
   return {
     form,
     isSubmitting,
     error,
-    onSubmit: form.handleSubmit(onSubmit),
+    onSubmit: form.handleSubmit(onSubmit as any),
   };
 };
